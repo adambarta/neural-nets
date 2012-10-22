@@ -2,6 +2,7 @@ CFLAGS += -DDEBUG
 CFLAGS += -ggdb
 CFLAGS += -O3
 CFLAGS += -Wall
+LIBS = -lm
 
 NNLIB = libnn.so
 EXE = nn
@@ -20,4 +21,7 @@ $(NNLIB): $(SRC) $(HDR)
 	$(CC) -o $@ $^ -shared -Wl,-x
 
 $(EXE): $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) -o $@ $^ $(LIBS)
+
+clean:
+	rm -rf core *.o $(EXE)

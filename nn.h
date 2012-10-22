@@ -7,7 +7,7 @@ struct neural_net {
   int layer_cnt;
   int *layer_size;
 
-  double *(*trans_func);
+  double (**trans_func)(double x);
 
   double **layer_outputs;
   double **layer_inputs;
@@ -20,7 +20,7 @@ struct neural_net {
   
 };
 
-struct neural_net *create_neural_network(int input_size);
+struct neural_net *create_neural_net(int *layer_sizes, double (**tf)(double x), int l_len);
 void destroy_neural_net(struct neural_net *n);
 
 
