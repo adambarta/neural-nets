@@ -6,6 +6,38 @@
 
 #include "nn.h"
 
+double sigmoid(int flag, double x)
+{
+  switch(flag){
+    default:
+    case EV:
+      return 1.0 / (1.0 + exp((-1.0)*x));
+    case EVD:
+      return sigmoid(EV, x)*(1.0 - sigmoid(EV, x));
+  }
+}
+
+double gaussian()
+{
+  static double u, v, s, t;
+  static int p = 0;
+
+  do {
+    
+    u = 2.0 * (double)rand() / RAND_MAX - 1.0;
+    v = 2.0 * (double)rand() / RAND_MAX - 1.0;
+
+    s = u*u + v*v;
+
+  } while (s > 1.0 || (u == 0.0 && v == 0.0));
+
+  t = sqrt(-2.0 * log(s) / s) * ( (p==0) ? u : v );
+
+  p = 1 - p;
+
+  return t;
+}
+
 void destroy_neural_net(struct neural_net *n)
 {
   int i,k;
@@ -79,10 +111,10 @@ void destroy_neural_net(struct neural_net *n)
   }
 }
 
-struct neural_net *create_neural_net(int *layer_sizes, double (**tf)(double x), int l_len)
+struct neural_net *create_neural_net(int *layer_sizes, double (**tf)(int flag, double x), int l_len)
 { 
   struct neural_net *n;
-  int i, k;
+  int i, j, k;
 
   if (layer_sizes == NULL || tf == NULL)
     return NULL;
@@ -238,28 +270,177 @@ struct neural_net *create_neural_net(int *layer_sizes, double (**tf)(double x), 
      
   }
   
+  for (i=0; i<n->layer_cnt; i++){
+    
+    for (j=0; j<n->layer_size[i]; j++){
+      
+      n->bias[i][j]            = gaussian();
+      n->prev_bias_delta[i][j] = 0.0;
+      n->layer_outputs[i][j]   = 0.0;
+      n->layer_inputs[i][j]    = 0.0;
+      n->delta[i][j]           = 0.0;
+
+    }
+
+    for (k=0; k < ((i == 0) ? n->input_size : n->layer_size[i-1]); k++){
+
+      for (j=0; j<n->layer_size[i]; j++){
+        n->weight[i][k][j]            = gaussian();  
+        n->prev_weight_delta[i][k][j] = 0.0;  
+      }
+
+    }
+
+  }
+
+
   return n;
 }
 
 
-double sigmoid(double x)
+double *run_network(struct neural_net *n, double *input, int ilen)
 {
-  return 1.0 / (1.0 + exp((-1.0)*x));
+  int l, i, j;
+  double sum, *output;
+
+  if (n == NULL)
+    return NULL;
+
+  if (ilen != n->input_size){
+#ifdef DEBUG
+    fprintf(stderr, "e: run input len and network configuration missmatch!\n");
+#endif
+    return NULL;
+  }
+
+  output = malloc(sizeof(double) * n->layer_size[n->layer_cnt-1]);
+  if (output == NULL){
+    return NULL;
+  }
+  
+  bzero(output, sizeof(double) * n->layer_size[n->layer_cnt-1]);
+  
+  for (l=0; l<n->layer_cnt; l++){
+
+    for (j=0; j<n->layer_size[l]; j++){
+      
+      sum = 0.0;
+
+      for (i=0; i< (l==0? n->input_size : n->layer_size[l-1]); i++){
+        sum += n->weight[l][i][j] * (l==0 ? input[i] : n->layer_outputs[l-1][i]);
+      }
+
+      sum += n->bias[l][j];
+
+      n->layer_inputs[l][j]  = sum;
+      if (n->trans_func[l])
+        n->layer_outputs[l][j] = (*(n->trans_func[l]))(EV, sum);
+      else
+        n->layer_outputs[l][j] = 0.0;
+
+    }
+
+  }
+  
+  for (i=0; i<n->layer_size[n->layer_cnt-1]; i++){
+    output[i] = n->layer_outputs[n->layer_cnt-1][i];
+  }
+
+  return output;
 }
+
+double train_network(struct neural_net *n, double *input, int ilen, double *desired, double trate, double momentum)
+{
+  double error, sum, weight_delta, bias_delta;
+  double *output;
+
+  int l,i,j,k;
+
+  if (n == NULL || input == NULL || desired == NULL || n->input_size != ilen)
+    return 0.0;
+
+  error         = 0.0;
+  sum           = 0.0;
+  weight_delta  = 0.0;
+  bias_delta    = 0.0;
+
+  output = run_network(n, input, ilen);
+  if (output == NULL)
+    return 0.0;
+  
+  for (l = n->layer_cnt - 1; l >= 0; l--){
+    
+    if (l == n->layer_cnt - 1){
+      //output layer
+      for (k=0; k<n->layer_size[l]; k++){
+        n->delta[l][k] = output[k] - desired[k];
+        error += pow(n->delta[l][k], 2);
+        if (n->trans_func[l])
+          n->delta[l][k] *= (*(n->trans_func[l]))(EVD, n->layer_inputs[l][k]);
+        else 
+          n->delta[l][k] *= 0.0;
+      }
+
+    } else { 
+      //hidden layer
+      for (i=0; i<n->layer_size[l]; i++){
+        sum = 0.0;
+        for(j=0; j< n->layer_size[l+1]; j++){
+          sum += n->weight[l+1][i][j] * n->delta[l+1][j];
+        }
+
+        if (n->trans_func[l])
+          sum *= (*(n->trans_func[l]))(EVD, n->layer_inputs[l][i]);
+        else 
+          sum *= 0.0;
+
+        n->delta[l][i] = sum;
+      }
+    }
+ 
+  }
+  
+  for (l = 0; l < n->layer_cnt; l++)
+    for(i = 0; i<(l==0?n->input_size:n->layer_size[l-1]); i++)
+      for (j=0; j<n->layer_size[l]; j++){
+        weight_delta = trate * n->delta[l][j] * (l==0?input[i]:n->layer_outputs[l-1][i]);
+        n->weight[l][i][j] -= weight_delta + momentum * n->prev_weight_delta[l][i][j];
+        n->prev_weight_delta[l][i][j] = weight_delta;
+      }
+
+  for (l = 0; l < n->layer_cnt; l++)
+    for (i = 0; i<n->layer_size[l]; i++){
+      bias_delta  = trate * n->delta[l][i];
+      n->bias[l][i] -= bias_delta + momentum * n->prev_bias_delta[l][i];
+      n->prev_bias_delta[l][i] = bias_delta;
+    }
+
+  if (output)
+    free(output);
+
+  return error;  
+}
+
 
 
 int main(int argc, char *argv[])
 {
   struct neural_net *n;
 
-  int input[] = {2, 3, 2, 1};
-  double (*tf[])(double x) = {&sigmoid, &sigmoid, &sigmoid, &sigmoid};
+  int layer_sizes[] = {1, 2, 1};
+  double (*tf[])(int flag, double x) = { NULL, &sigmoid, &sigmoid };
   
+  double input[]   = {0.0};
+  double desired[] = {0.1};
+  double *output;
+  double error;
+
   int ilen;
+  ilen  = sizeof(layer_sizes) / sizeof(int);
+  
+  error = 0.0;
 
-  ilen  = sizeof(input) / sizeof(int);
-
-  n = create_neural_net(input, tf, ilen);
+  n = create_neural_net(layer_sizes, tf, ilen);
   if (n == NULL){
 #ifdef DEBUG
     fprintf(stderr, "e: create neural network failed\n");
@@ -267,7 +448,27 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  int i;
+
+  for (i=0; i<1000; i++){
+      
+    error = train_network(n, input, 1, desired, 0.15, 0.1);
+    output = run_network(n, input, 1);
+    fprintf(stdout, "%d input %f output %f error %f\n", i, input[0], output[0], error);
+
+    free(output);
+  }
+  
+
+
   destroy_neural_net(n);
+
+#if 0
+  int i;
+  for (i=0; i<10000; i++){
+    fprintf(stdout, "%f\n", gaussian());
+  }
+#endif
 
   return 0;
 }
