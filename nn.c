@@ -17,6 +17,17 @@ double sigmoid(int flag, double x)
   }
 }
 
+double linear(int flag, double x)
+{
+  switch(flag){
+    default:
+    case EV:
+      return x;
+    case EVD:
+      return 1.0;
+  }
+}
+
 double gaussian()
 {
   static double u, v, s, t;
@@ -403,9 +414,13 @@ double train_network(struct neural_net *n, double *input, int ilen, double *desi
   for (l = 0; l < n->layer_cnt; l++)
     for(i = 0; i<(l==0?n->input_size:n->layer_size[l-1]); i++)
       for (j=0; j<n->layer_size[l]; j++){
-        weight_delta = trate * n->delta[l][j] * (l==0?input[i]:n->layer_outputs[l-1][i]);
+        weight_delta = trate * n->delta[l][j] * (l==0?input[i]:n->layer_outputs[l-1][i])
+                      + momentum * n->prev_weight_delta[l][i][j];
+        n->weight[l][i][j] -= weight_delta;
+#if 0
         n->weight[l][i][j] -= weight_delta + momentum * n->prev_weight_delta[l][i][j];
-        n->prev_weight_delta[l][i][j] = weight_delta;
+#endif
+        n->prev_weight_delta[l][i][j] = weight_delta ;
       }
 
   for (l = 0; l < n->layer_cnt; l++)
@@ -427,11 +442,11 @@ int main(int argc, char *argv[])
 {
   struct neural_net *n;
 
-  int layer_sizes[] = {1, 2, 1};
-  double (*tf[])(int flag, double x) = { NULL, &sigmoid, &sigmoid };
+  int layer_sizes[] = {1, 3, 1};
+  double (*tf[])(int flag, double x) = { NULL, &sigmoid, &linear};
   
-  double input[]   = {0.0};
-  double desired[] = {0.1};
+  double input[]   = {1.0};
+  double desired[] = {2.5};
   double *output;
   double error;
 
@@ -448,15 +463,25 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  int i;
+  int i, j;
 
-  for (i=0; i<1000; i++){
+  for (i=0; i<10000; i++){
       
-    error = train_network(n, input, 1, desired, 0.15, 0.1);
-    output = run_network(n, input, 1);
-    fprintf(stdout, "%d input %f output %f error %f\n", i, input[0], output[0], error);
+    error = train_network(n, input, layer_sizes[0], desired, 0.15, 0.1);
+    output = run_network(n, input, layer_sizes[0]);
+    fprintf(stderr, "%d input ", i);
+    for (j=0; j<layer_sizes[0]; j++){
+      fprintf(stderr, "%f ", input[j]);
+    }
+    fprintf(stderr, "output ");
+    for (j=0; j<layer_sizes[2]; j++){
+      fprintf(stderr, "%f ", output[j]);
+    }
+    fprintf(stderr, "error %f\n", error);
+    
 
     free(output);
+    
   }
   
 
