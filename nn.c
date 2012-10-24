@@ -6,51 +6,6 @@
 
 #include "nn.h"
 
-double sigmoid(int flag, double x)
-{
-  switch(flag){
-    default:
-    case EV:
-      return 1.0 / (1.0 + exp((-1.0)*x));
-    case EVD:
-      return sigmoid(EV, x)*(1.0 - sigmoid(EV, x));
-  }
-}
-
-double linear(int flag, double x)
-{
-  switch(flag){
-    default:
-    case EV:
-      return x;
-    case EVD:
-      return 1.0;
-  }
-}
-
-double gaussian(int flag, double x)
-{
-  switch(flag){
-    default:
-    case EV:
-      return exp((-1)*pow(x,2));
-    case EVD:
-      return (-2.0)*x*gaussian(EV, x);
-  }
-}
-
-double rational_sigmoid(int flag, double x)
-{
-  double sxp = sqrt(1.0 + x*x);
-  switch(flag){
-    default:
-    case EV:
-      return x / (1.0 + sxp);
-    case EVD:
-      return 1.0 / ( sxp * (sxp + 1.0));
-  }
-}
-
 double gaussian_rnd()
 {
   static double u, v, s, t;
@@ -457,68 +412,6 @@ double train_network(struct neural_net *n, double *input, int ilen, double *desi
     free(output);
 
   return error;  
-}
-
-
-
-int main(int argc, char *argv[])
-{
-  struct neural_net *n;
-
-  int layer_sizes[] = {1, 3, 1, 1};
-  double (*tf[])(int flag, double x) = { NULL, &gaussian, &rational_sigmoid, &linear};
-  
-  double input[]   = {1.0};
-  double desired[] = {2.5};
-  double *output;
-  double error;
-
-  int ilen;
-  ilen  = sizeof(layer_sizes) / sizeof(int);
-  
-  error = 0.0;
-
-  n = create_neural_net(layer_sizes, tf, ilen);
-  if (n == NULL){
-#ifdef DEBUG
-    fprintf(stderr, "e: create neural network failed\n");
-#endif
-    return 1;
-  }
-
-  int i, j;
-
-  for (i=0; i<1000; i++){
-      
-    error = train_network(n, input, layer_sizes[0], desired, 0.15, 0.1);
-    output = run_network(n, input, layer_sizes[0]);
-    fprintf(stderr, "%d input ", i);
-    for (j=0; j<layer_sizes[0]; j++){
-      fprintf(stderr, "%f ", input[j]);
-    }
-    fprintf(stderr, "output ");
-    for (j=0; j<layer_sizes[3]; j++){
-      fprintf(stderr, "%f ", output[j]);
-    }
-    fprintf(stderr, "error %f\n", error);
-    
-
-    free(output);
-    
-  }
-  
-
-
-  destroy_neural_net(n);
-
-#if 0
-  int i;
-  for (i=0; i<10000; i++){
-    fprintf(stdout, "%f\n", gaussian());
-  }
-#endif
-
-  return 0;
 }
 
 

@@ -23,6 +23,13 @@ struct neural_net {
   
 };
 
+
+double sigmoid(int flag, double x);
+double linear(int flag, double x);
+double gaussian(int flag, double x);
+double rational_sigmoid(int flag, double x);
+
+
 struct neural_net *create_neural_net(int *layer_sizes, double (**tf)(int flag, double x), int l_len);
 void destroy_neural_net(struct neural_net *n);
 
