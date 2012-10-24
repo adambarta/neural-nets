@@ -1,8 +1,8 @@
 #ifndef NN_H
 #define HH_H
 
-#define EV  0
-#define EVD 1
+#define EV  0 /*evaluate*/
+#define EVD 1 /*evaluate derivative*/
 
 struct neural_net {
   
