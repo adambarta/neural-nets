@@ -4,6 +4,7 @@
 #define EV  0 /*evaluate*/
 #define EVD 1 /*evaluate derivative*/
 
+
 struct neural_net {
   
   int input_size;
@@ -31,9 +32,11 @@ double rational_sigmoid(int flag, double x);
 
 
 struct neural_net *create_neural_net(int *layer_sizes, double (**tf)(int flag, double x), int l_len);
+
 void destroy_neural_net(struct neural_net *n);
 
 double train_network(struct neural_net *n, double *input, int ilen, double *desired, double trate, double momentum);
+
 double *run_network(struct neural_net *n, double *input, int ilen);
 
 
