@@ -5,6 +5,10 @@
 #include <math.h>
 
 #include "nn.h"
+#include "cl.h"
+
+
+
 
 
 int main(int argc, char *argv[])
@@ -38,6 +42,7 @@ int main(int argc, char *argv[])
       
     error = train_network(n, input, layer_sizes[0], desired, 0.15, 0.1);
     output = run_network(n, input, layer_sizes[0]);
+
     fprintf(stderr, "%d input ", i);
     for (j=0; j<layer_sizes[0]; j++){
       fprintf(stderr, "%f ", input[j]);

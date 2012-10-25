@@ -2,7 +2,7 @@ CFLAGS += -DDEBUG
 CFLAGS += -ggdb
 CFLAGS += -O3
 CFLAGS += -Wall
-LIBS = -lm
+LIBS = -lm -lOpenCL
 LDIR = -L.
 
 PWD = $(shell pwd)
@@ -12,8 +12,8 @@ NNLIB = libnn.so
 EXE = nn
 EXESRC = eg.c
 
-SRC = nn.c tf.c
-HDR = nn.h
+SRC = nn.c tf.c cl.c
+HDR = nn.h cl.h
 
 OBJ = $(patsubst %.c,%.o, $(SRC))
 
