@@ -7,12 +7,34 @@
 #include "nn.h"
 #include "cl.h"
 
+static struct cl_trans clo;
 
-
-
+#define KERNELDIR   "./"
+#define KERNELFILE  "kernels.cl"
 
 int main(int argc, char *argv[])
 {
+  
+  if (setup_ocl(KERNELDIR KERNELFILE, &(clo.ctx), &(clo.cq), &(clo.p)) != CL_SUCCESS){
+#ifdef DEBUG
+    fprintf(stderr, "setup_ocl error\n");
+#endif
+    destroy(&(clo.k), &(clo.ctx), &(clo.cq), &(clo.p));
+    return 1;
+  }
+
+  clo.k = get_kernel("neural_net", &(clo.p));
+  if (clo.p == NULL){
+#ifdef DEBUG
+    fprintf(stderr, "get kernel error\n");
+#endif
+    destroy(&(clo.k), &(clo.ctx), &(clo.cq), &(clo.p));
+    
+  }
+  
+  
+  destroy(&(clo.k), &(clo.ctx), &(clo.cq), &(clo.p));
+#if 0
   struct neural_net *n;
 
   int layer_sizes[] = {1, 3, 1, 1};
@@ -64,6 +86,8 @@ int main(int argc, char *argv[])
   for (i=0; i<10000; i++){
     fprintf(stdout, "%f\n", gaussian());
   }
+#endif
+
 #endif
 
   return 0;

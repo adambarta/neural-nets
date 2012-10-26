@@ -170,11 +170,9 @@ const char* oclErrorString(cl_int error)
   };
 
   const int errorCount = sizeof(errorString) / sizeof(errorString[0]);
-
   const int index = -error;
 
   return (index >= 0 && index < errorCount) ? errorString[index] : "";
-
 }
 
 
@@ -204,7 +202,14 @@ int setup_ocl(char *kf, cl_context *context, cl_command_queue *command_queue, cl
 
   if (stat(kf, &fs) < 0){
 #ifdef DEBUG
-    fprintf(stderr, "e: stat error: %s\n", strerror(errno));
+    fprintf(stderr, "e: stat error: %s <%s>\n", strerror(errno), kf);
+#endif
+    return -1;
+  }
+
+  if (fs.st_size <= 0){
+#ifdef DEBUG
+    fprintf(stderr, "e: empty file <%s>\n", kf);
 #endif
     return -1;
   }
@@ -336,7 +341,6 @@ int setup_ocl(char *kf, cl_context *context, cl_command_queue *command_queue, cl
     free(devices);
     return -1;
   }
-
 
   munmap(fc, fs.st_size);
   close(fd);

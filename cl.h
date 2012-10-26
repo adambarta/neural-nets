@@ -3,13 +3,23 @@
 
 #include <CL/opencl.h>
 
+#if 0
 struct float2 {
   float x;
   float y;
 };
 
 typedef struct float2 float2;
+#endif
 
+#define CL_SUCCESS 0
+
+struct cl_trans {
+  cl_context ctx;
+  cl_command_queue cq;
+  cl_program p;
+  cl_kernel k;
+};
 
 cl_int oclGetPlatformID(cl_platform_id* clSelectedPlatformID);
 
