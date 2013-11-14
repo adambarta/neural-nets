@@ -14,7 +14,7 @@ static struct cl_trans clo;
 
 int main(int argc, char *argv[])
 {
-  
+#if 0
   if (setup_ocl(KERNELDIR KERNELFILE, &(clo.ctx), &(clo.cq), &(clo.p)) != CL_SUCCESS){
 #ifdef DEBUG
     fprintf(stderr, "setup_ocl error\n");
@@ -34,14 +34,16 @@ int main(int argc, char *argv[])
   
   
   destroy(&(clo.k), &(clo.ctx), &(clo.cq), &(clo.p));
-#if 0
+#endif
+
+#if 1
   struct neural_net *n;
 
-  int layer_sizes[] = {1, 3, 1, 1};
-  double (*tf[])(int flag, double x) = { NULL, &gaussian, &rational_sigmoid, &linear};
+  int layer_sizes[] = {5, 3, 2, 1, 6};
+  double (*tf[])(int flag, double x) = { NULL, &gaussian, &rational_sigmoid, &sigmoid, &linear};
   
-  double input[]   = {1.0};
-  double desired[] = {2.5};
+  double input[]   = {1.0, 0.5, 1.0, 1.5, 4.5};
+  double desired[] = {6.0, 5.0, 4.0, 2.0, 10.0, 0.0};
   double *output;
   double error;
 
@@ -60,9 +62,9 @@ int main(int argc, char *argv[])
 
   int i, j;
 
-  for (i=0; i<1000; i++){
+  for (i=0; i<100; i++){
       
-    error = train_network(n, input, layer_sizes[0], desired, 0.15, 0.1);
+    error  = train_network(n, input, layer_sizes[0], desired, 0.15, 0.1);
     output = run_network(n, input, layer_sizes[0]);
 
     fprintf(stderr, "%d input ", i);
@@ -70,7 +72,7 @@ int main(int argc, char *argv[])
       fprintf(stderr, "%f ", input[j]);
     }
     fprintf(stderr, "output ");
-    for (j=0; j<layer_sizes[3]; j++){
+    for (j=0; j<layer_sizes[4]; j++){
       fprintf(stderr, "%f ", output[j]);
     }
     fprintf(stderr, "error %f\n", error);
